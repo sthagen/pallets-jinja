@@ -25,7 +25,7 @@ class TestDebug:
         m = re.search(expected_tb.strip(), "".join(tb))
         assert (
             m is not None
-        ), "Traceback did not match:\n\n{''.join(tb)}\nexpected:\n{expected_tb}"
+        ), f"Traceback did not match:\n\n{''.join(tb)}\nexpected:\n{expected_tb}"
 
     def test_runtime_error(self, fs_env):
         def test():
@@ -36,9 +36,11 @@ class TestDebug:
             test,
             r"""
   File ".*?broken.html", line 2, in (top-level template code|<module>)
-    \{\{ fail\(\) \}\}
+    \{\{ fail\(\) \}\}(
+    \^{12})?
   File ".*debug?.pyc?", line \d+, in <lambda>
-    tmpl\.render\(fail=lambda: 1 / 0\)
+    tmpl\.render\(fail=lambda: 1 / 0\)(
+                             ~~\^~~)?
 ZeroDivisionError: (int(eger)? )?division (or modulo )?by zero
 """,
         )
@@ -66,7 +68,8 @@ to be closed is 'for'.
             test,
             r"""
   File ".*debug.pyc?", line \d+, in test
-    raise TemplateSyntaxError\("wtf", 42\)
+    raise TemplateSyntaxError\("wtf", 42\)(
+    \^{36})?
 (jinja2\.exceptions\.)?TemplateSyntaxError: wtf
   line 42""",
         )

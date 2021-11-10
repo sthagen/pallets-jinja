@@ -2,7 +2,6 @@
 options.
 """
 import os
-import sys
 import typing
 import typing as t
 import weakref
@@ -1115,33 +1114,20 @@ class Environment:
 
 
 class Template:
-    """The central template object.  This class represents a compiled template
-    and is used to evaluate it.
+    """A compiled template that can be rendered.
 
-    Normally the template object is generated from an :class:`Environment` but
-    it also has a constructor that makes it possible to create a template
-    instance directly using the constructor.  It takes the same arguments as
-    the environment constructor but it's not possible to specify a loader.
+    Use the methods on :class:`Environment` to create or load templates.
+    The environment is used to configure how templates are compiled and
+    behave.
 
-    Every template object has a few methods and members that are guaranteed
-    to exist.  However it's important that a template object should be
-    considered immutable.  Modifications on the object are not supported.
+    It is also possible to create a template object directly. This is
+    not usually recommended. The constructor takes most of the same
+    arguments as :class:`Environment`. All templates created with the
+    same environment arguments share the same ephemeral ``Environment``
+    instance behind the scenes.
 
-    Template objects created from the constructor rather than an environment
-    do have an `environment` attribute that points to a temporary environment
-    that is probably shared with other templates created with the constructor
-    and compatible settings.
-
-    >>> template = Template('Hello {{ name }}!')
-    >>> template.render(name='John Doe') == u'Hello John Doe!'
-    True
-    >>> stream = template.stream(name='John Doe')
-    >>> next(stream) == u'Hello John Doe!'
-    True
-    >>> next(stream)
-    Traceback (most recent call last):
-        ...
-    StopIteration
+    A template object should be considered immutable. Modifications on
+    the object are not supported.
     """
 
     #: Type of environment to create when creating a template directly
@@ -1281,14 +1267,11 @@ class Template:
 
             close = False
 
-            if sys.version_info < (3, 7):
-                loop = asyncio.get_event_loop()
-            else:
-                try:
-                    loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    loop = asyncio.new_event_loop()
-                    close = True
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                close = True
 
             try:
                 return loop.run_until_complete(self.render_async(*args, **kwargs))
@@ -1344,13 +1327,7 @@ class Template:
             async def to_list() -> t.List[str]:
                 return [x async for x in self.generate_async(*args, **kwargs)]
 
-            if sys.version_info < (3, 7):
-                loop = asyncio.get_event_loop()
-                out = loop.run_until_complete(to_list())
-            else:
-                out = asyncio.run(to_list())
-
-            yield from out
+            yield from asyncio.run(to_list())
             return
 
         ctx = self.new_context(dict(*args, **kwargs))
