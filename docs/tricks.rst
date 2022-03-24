@@ -26,7 +26,7 @@ basic skeleton is added to the file so that if it's indeed rendered with
 `standalone` set to `True` a very basic HTML skeleton is added::
 
     {% if not standalone %}{% extends 'default.html' %}{% endif -%}
-    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+    <!DOCTYPE html>
     <title>{% block title %}The Page Title{% endblock %}</title>
     <link rel="stylesheet" href="style.css" type="text/css">
     {% block body %}
@@ -74,8 +74,8 @@ sense to define a default for that variable::
     ...
     <ul id="navigation">
     {% for href, id, caption in navigation_bar %}
-      <li{% if id == active_page %} class="active"{% endif
-      %}><a href="{{ href|e }}">{{ caption|e }}</a></li>
+      <li{% if id == active_page %} class="active"{% endif %}>
+      <a href="{{ href|e }}">{{ caption|e }}</a></li>
     {% endfor %}
     </ul>
     ...

@@ -1,9 +1,15 @@
 .. currentmodule:: jinja2
 
-Version 3.1.0
+Version 3.2.0
 -------------
 
 Unreleased
+
+
+Version 3.1.0
+-------------
+
+Released 2022-03-24
 
 -   Drop support for Python 3.6. :pr:`1534`
 -   Remove previously deprecated code. :pr:`1544`
@@ -26,6 +32,19 @@ Unreleased
 -   The ``{% trans %}`` tag can use ``pgettext`` and ``npgettext`` by
     passing a context string as the first token in the tag, like
     ``{% trans "title" %}``. :issue:`1430`
+-   Update valid identifier characters from Python 3.6 to 3.7.
+    :pr:`1571`
+-   Filters and tests decorated with ``@async_variant`` are pickleable.
+    :pr:`1612`
+-   Add ``items`` filter. :issue:`1561`
+-   Subscriptions (``[0]``, etc.) can be used after filters, tests, and
+    calls when the environment is in async mode. :issue:`1573`
+-   The ``groupby`` filter is case-insensitive by default, matching
+    other comparison filters. Added the ``case_sensitive`` parameter to
+    control this. :issue:`1463`
+-   Windows drive-relative path segments in template names will not
+    result in ``FileSystemLoader`` and ``PackageLoader`` loading from
+    drive-relative paths. :pr:`1621`
 
 
 Version 3.0.3

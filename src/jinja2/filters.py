@@ -218,6 +218,36 @@ def do_lower(s: str) -> str:
     return soft_str(s).lower()
 
 
+def do_items(value: t.Union[t.Mapping[K, V], Undefined]) -> t.Iterator[t.Tuple[K, V]]:
+    """Return an iterator over the ``(key, value)`` items of a mapping.
+
+    ``x|items`` is the same as ``x.items()``, except if ``x`` is
+    undefined an empty iterator is returned.
+
+    This filter is useful if you expect the template to be rendered with
+    an implementation of Jinja in another programming language that does
+    not have a ``.items()`` method on its mapping type.
+
+    .. code-block:: html+jinja
+
+        <dl>
+        {% for key, value in my_dict|items %}
+            <dt>{{ key }}
+            <dd>{{ value }}
+        {% endfor %}
+        </dl>
+
+    .. versionadded:: 3.1
+    """
+    if isinstance(value, Undefined):
+        return
+
+    if not isinstance(value, abc.Mapping):
+        raise TypeError("Can only get item pairs from a mapping.")
+
+    yield from value.items()
+
+
 @pass_eval_context
 def do_xmlattr(
     eval_ctx: "EvalContext", d: t.Mapping[str, t.Any], autospace: bool = True
@@ -1111,7 +1141,7 @@ def do_round(
         return round(value, precision)
 
     func = getattr(math, method)
-    return t.cast(float, func(value * (10 ** precision)) / (10 ** precision))
+    return t.cast(float, func(value * (10**precision)) / (10**precision))
 
 
 class _GroupTuple(t.NamedTuple):
@@ -1133,7 +1163,8 @@ def sync_do_groupby(
     value: "t.Iterable[V]",
     attribute: t.Union[str, int],
     default: t.Optional[t.Any] = None,
-) -> "t.List[t.Tuple[t.Any, t.List[V]]]":
+    case_sensitive: bool = False,
+) -> "t.List[_GroupTuple]":
     """Group a sequence of objects by an attribute using Python's
     :func:`itertools.groupby`. The attribute can use dot notation for
     nested access, like ``"address.city"``. Unlike Python's ``groupby``,
@@ -1173,17 +1204,41 @@ def sync_do_groupby(
           <li>{{ city }}: {{ items|map(attribute="name")|join(", ") }}</li>
         {% endfor %}</ul>
 
+    Like the :func:`~jinja-filters.sort` filter, sorting and grouping is
+    case-insensitive by default. The ``key`` for each group will have
+    the case of the first item in that group of values. For example, if
+    a list of users has cities ``["CA", "NY", "ca"]``, the "CA" group
+    will have two values. This can be disabled by passing
+    ``case_sensitive=True``.
+
+    .. versionchanged:: 3.1
+        Added the ``case_sensitive`` parameter. Sorting and grouping is
+        case-insensitive by default, matching other filters that do
+        comparisons.
+
     .. versionchanged:: 3.0
         Added the ``default`` parameter.
 
     .. versionchanged:: 2.6
         The attribute supports dot notation for nested access.
     """
-    expr = make_attrgetter(environment, attribute, default=default)
-    return [
+    expr = make_attrgetter(
+        environment,
+        attribute,
+        postprocess=ignore_case if not case_sensitive else None,
+        default=default,
+    )
+    out = [
         _GroupTuple(key, list(values))
         for key, values in groupby(sorted(value, key=expr), expr)
     ]
+
+    if not case_sensitive:
+        # Return the real key from the first value instead of the lowercase key.
+        output_expr = make_attrgetter(environment, attribute, default=default)
+        out = [_GroupTuple(output_expr(values[0]), values) for _, values in out]
+
+    return out
 
 
 @async_variant(sync_do_groupby)  # type: ignore
@@ -1192,12 +1247,25 @@ async def do_groupby(
     value: "t.Union[t.AsyncIterable[V], t.Iterable[V]]",
     attribute: t.Union[str, int],
     default: t.Optional[t.Any] = None,
-) -> "t.List[t.Tuple[t.Any, t.List[V]]]":
-    expr = make_attrgetter(environment, attribute, default=default)
-    return [
+    case_sensitive: bool = False,
+) -> "t.List[_GroupTuple]":
+    expr = make_attrgetter(
+        environment,
+        attribute,
+        postprocess=ignore_case if not case_sensitive else None,
+        default=default,
+    )
+    out = [
         _GroupTuple(key, await auto_to_list(values))
         for key, values in groupby(sorted(await auto_to_list(value), key=expr), expr)
     ]
+
+    if not case_sensitive:
+        # Return the real key from the first value instead of the lowercase key.
+        output_expr = make_attrgetter(environment, attribute, default=default)
+        out = [_GroupTuple(output_expr(values[0]), values) for _, values in out]
+
+    return out
 
 
 @pass_environment
@@ -1739,6 +1807,7 @@ FILTERS = {
     "length": len,
     "list": do_list,
     "lower": do_lower,
+    "items": do_items,
     "map": do_map,
     "min": do_min,
     "max": do_max,
