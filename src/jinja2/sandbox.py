@@ -25,10 +25,10 @@ F = t.TypeVar("F", bound=t.Callable[..., t.Any])
 MAX_RANGE = 100000
 
 #: Unsafe function attributes.
-UNSAFE_FUNCTION_ATTRIBUTES: t.Set[str] = set()
+UNSAFE_FUNCTION_ATTRIBUTES: set[str] = set()
 
 #: Unsafe method attributes. Function attributes are unsafe for methods too.
-UNSAFE_METHOD_ATTRIBUTES: t.Set[str] = set()
+UNSAFE_METHOD_ATTRIBUTES: set[str] = set()
 
 #: unsafe generator attributes.
 UNSAFE_GENERATOR_ATTRIBUTES = {"gi_frame", "gi_code"}
@@ -39,7 +39,7 @@ UNSAFE_COROUTINE_ATTRIBUTES = {"cr_frame", "cr_code"}
 #: unsafe attributes on async generators
 UNSAFE_ASYNC_GENERATOR_ATTRIBUTES = {"ag_code", "ag_frame"}
 
-_mutable_spec: t.Tuple[t.Tuple[t.Type[t.Any], t.FrozenSet[str]], ...] = (
+_mutable_spec: tuple[tuple[type[t.Any], frozenset[str]], ...] = (
     (
         abc.MutableSet,
         frozenset(
@@ -190,7 +190,7 @@ class SandboxedEnvironment(Environment):
     #: default callback table for the binary operators.  A copy of this is
     #: available on each instance of a sandboxed environment as
     #: :attr:`binop_table`
-    default_binop_table: t.Dict[str, t.Callable[[t.Any, t.Any], t.Any]] = {
+    default_binop_table: dict[str, t.Callable[[t.Any, t.Any], t.Any]] = {
         "+": operator.add,
         "-": operator.sub,
         "*": operator.mul,
@@ -203,7 +203,7 @@ class SandboxedEnvironment(Environment):
     #: default callback table for the unary operators.  A copy of this is
     #: available on each instance of a sandboxed environment as
     #: :attr:`unop_table`
-    default_unop_table: t.Dict[str, t.Callable[[t.Any], t.Any]] = {
+    default_unop_table: dict[str, t.Callable[[t.Any], t.Any]] = {
         "+": operator.pos,
         "-": operator.neg,
     }
@@ -222,7 +222,7 @@ class SandboxedEnvironment(Environment):
     #: interested in.
     #:
     #: .. versionadded:: 2.6
-    intercepted_binops: t.FrozenSet[str] = frozenset()
+    intercepted_binops: frozenset[str] = frozenset()
 
     #: a set of unary operators that should be intercepted.  Each operator
     #: that is added to this set (empty by default) is delegated to the
@@ -237,7 +237,7 @@ class SandboxedEnvironment(Environment):
     #: interested in.
     #:
     #: .. versionadded:: 2.6
-    intercepted_unops: t.FrozenSet[str] = frozenset()
+    intercepted_unops: frozenset[str] = frozenset()
 
     def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
         super().__init__(*args, **kwargs)
@@ -285,9 +285,7 @@ class SandboxedEnvironment(Environment):
         """
         return self.unop_table[operator](arg)
 
-    def getitem(
-        self, obj: t.Any, argument: t.Union[str, t.Any]
-    ) -> t.Union[t.Any, Undefined]:
+    def getitem(self, obj: t.Any, argument: str | t.Any) -> t.Any | Undefined:
         """Subscribe an object from sandboxed code."""
         try:
             return obj[argument]
@@ -311,7 +309,7 @@ class SandboxedEnvironment(Environment):
                         return self.unsafe_undefined(obj, argument)
         return self.undefined(obj=obj, name=argument)
 
-    def getattr(self, obj: t.Any, attribute: str) -> t.Union[t.Any, Undefined]:
+    def getattr(self, obj: t.Any, attribute: str) -> t.Any | Undefined:
         """Subscribe an object from sandboxed code and prefer the
         attribute.  The attribute passed *must* be a bytestring.
         """
@@ -341,7 +339,7 @@ class SandboxedEnvironment(Environment):
             exc=SecurityError,
         )
 
-    def wrap_str_format(self, value: t.Any) -> t.Optional[t.Callable[..., str]]:
+    def wrap_str_format(self, value: t.Any) -> t.Callable[..., str] | None:
         """If the given value is a ``str.format`` or ``str.format_map`` method,
         return a new function than handles sandboxing. This is done at access
         rather than in :meth:`call`, so that calls made without ``call`` are
@@ -357,7 +355,7 @@ class SandboxedEnvironment(Environment):
         if not isinstance(f_self, str):
             return None
 
-        str_type: t.Type[str] = type(f_self)
+        str_type: type[str] = type(f_self)
         is_format_map = value.__name__ == "format_map"
         formatter: SandboxedFormatter
 
@@ -421,7 +419,7 @@ class SandboxedFormatter(Formatter):
 
     def get_field(
         self, field_name: str, args: t.Sequence[t.Any], kwargs: t.Mapping[str, t.Any]
-    ) -> t.Tuple[t.Any, str]:
+    ) -> tuple[t.Any, str]:
         first, rest = formatter_field_name_split(field_name)
         obj = self.get_value(first, args, kwargs)
         for is_attr, i in rest:

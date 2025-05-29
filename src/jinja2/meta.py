@@ -17,7 +17,7 @@ class TrackingCodeGenerator(CodeGenerator):
 
     def __init__(self, environment: "Environment") -> None:
         super().__init__(environment, "<introspection>", "<introspection>")
-        self.undeclared_identifiers: t.Set[str] = set()
+        self.undeclared_identifiers: set[str] = set()
 
     def write(self, x: str) -> None:
         """Don't write."""
@@ -31,7 +31,7 @@ class TrackingCodeGenerator(CodeGenerator):
                 self.undeclared_identifiers.add(param)
 
 
-def find_undeclared_variables(ast: nodes.Template) -> t.Set[str]:
+def find_undeclared_variables(ast: nodes.Template) -> set[str]:
     """Returns a set of all variables in the AST that will be looked up from
     the context at runtime.  Because at compile time it's not known which
     variables will be used depending on the path the execution takes at
@@ -56,10 +56,10 @@ def find_undeclared_variables(ast: nodes.Template) -> t.Set[str]:
 
 
 _ref_types = (nodes.Extends, nodes.FromImport, nodes.Import, nodes.Include)
-_RefType = t.Union[nodes.Extends, nodes.FromImport, nodes.Import, nodes.Include]
+_RefType = nodes.Extends | nodes.FromImport | nodes.Import | nodes.Include
 
 
-def find_referenced_templates(ast: nodes.Template) -> t.Iterator[t.Optional[str]]:
+def find_referenced_templates(ast: nodes.Template) -> t.Iterator[str | None]:
     """Finds all the referenced templates from the AST.  This will return an
     iterator over all the hardcoded template extensions, inclusions and
     imports.  If dynamic inheritance or inclusion is used, `None` will be
